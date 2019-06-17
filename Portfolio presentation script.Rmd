@@ -1,0 +1,116 @@
+---
+title: "Data Science Portfolio"
+author: "Fernando Torres H."
+date: "07/09/2018"
+output:
+  slidy_presentation:
+    theme: lumen
+    fig_width: 9 
+    fig_height: 6
+---
+
+<body style="background-color:#F0F8FF;">
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+
+<center> <h1> **TITLE**</h1> </center>
+
+
+<style>
+body {
+text-align: justify}
+</style>
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align="center", out.width = "900px")
+
+```
+
+
+```{r global, include = FALSE}
+
+```
+
+
+<br>
+
+# **SUBTITLE**
+
+TEXT
+
+<br>
+
+
+```{r, fig.align="center", echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
+
+```
+
+<br>
+
+
+# **SUBTITLE**
+
+**SUBSUBTITLE:** TEXT
+
+<br>
+
+```{r, fig.align="center", echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
+
+
+```
+
+
+<br>
+
+
+## **SUBTITLE** 
+
+**SUBSUBTITLE**
+
+* BULLET TITLE
+<br>
+BULLET TEXT
+
+* BULLET TITLE
+<br>
+BULLET TEXT
+<br>
+<br>
+
+
+**SUBSUBTITLE**
+
+* BULLET POINT
+<br>
+BULLET DESCRIPTION
+
+* BULLET POINT
+<br>
+BULLET DESCRIPTION
+<br>
+<br>
+
+
+**SUBTITLE**
+
+* BULLET POINT
+* BULLET POINT
+ 
+<br>
+ 
+**SUBTITLE**
+
+* BULLET POINT
+* BULLET POINT
+
