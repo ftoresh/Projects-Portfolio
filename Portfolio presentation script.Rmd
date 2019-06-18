@@ -719,3 +719,5 @@ Clic [here](https://www.youtube.com/watch?v=22a7iOIU6sw&feature=youtu.be) to see
 
 
 ---
+
+The code of this portfolio can be seen on my Github account following [this repository](https://github.com/ftoresh/Projects-Portfolio/blob/master/Portfolio%20presentation%20script.Rmd). 
