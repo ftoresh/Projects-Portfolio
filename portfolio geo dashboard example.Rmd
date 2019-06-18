@@ -1,0 +1,188 @@
+---
+title: "Interactive Geo-Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: flatly
+    orientation: columns
+    vertical_layout: fill
+runtime: shiny
+runApp: showcase
+---
+
+
+```{r global, include = FALSE}
+
+
+library(tidyverse)
+library(readxl)
+library(ggthemes)
+library(leaflet)
+library(plotly)
+library(readr)
+
+
+########################  Import data ########################
+
+# Import main donations
+dataset_main_donations <-
+  read_csv(
+        "~/Google Drive/Data Analysis/Bases de Datos/St. Cuthberts/Support Services/Donorflex exports/dataset_main_donations.csv"
+  ) %>% 
+ ## Format all columns
+  mutate_at(vars(date.of.birth,
+                 donation.date), funs(as.Date(., format = '%d/%m/%Y'))) %>%
+  mutate_at(vars(donor.no,
+                 source:source.group), funs(as.factor)) %>%
+  mutate_at(vars(journal.no,
+                 donation.amount), funs(as.numeric)) %>%
+  mutate_at(vars(surname,
+                 forename,
+                 donor.postcode), funs(as.character)) 
+
+
+# IPU data
+
+# Import main referrals 
+dataset_referrals <- read_csv(
+  "~//Google Drive/Data Analysis/Bases de Datos/St. Cuthberts/Cinical Services 2015 - 13.06.2018/SystemOne and Excel final/Referral_Report_Final_Complete.csv"
+) %>%
+  ## Delete this step when I have the ages on the dataset
+  rename_all(funs(tolower(make.names(.)))) %>%
+  rename_all(funs(gsub("_", ".", .))) %>%
+  separate(age, c("patient.age", "."), sep = "yrs") %>%
+  select(-.) %>% 
+  rename(service.offered.before.standarize = service.offered) %>%
+  filter(service.offered.before.standarize != "Marie Curie Rapid Response") %>%
+  mutate(
+    service.offered = case_when(
+      service.offered.before.standarize %in% c(
+        "In Patient",
+        "Inpatient - Emergency Respite",
+        "Inpatient - Psyco-social Support",
+        "Inpatient - Respite",
+        "Inpatient - Symptom Control",
+        "Lymphoedema",
+        "Advice/consultation",
+        "Day Hospice"
+      ) ~ "IPU",
+      service.offered.before.standarize %in% c(
+        "12 Week Program",
+        "Living Well Centre",
+        "Respiratory Group",
+        "Heart Failure Group",
+        "Palliative Medicine",
+        "Living Well Centre"
+      ) ~ "LWC"
+    )
+  ) %>%
+  mutate_at(vars(discharge.date, referral.date), funs(as.Date)) %>%
+  mutate_at(
+    vars(
+      referral.id,
+      referral.in.intervention.type,
+      service.offered.before.standarize,
+      nhs.number
+    ),
+    funs(as.character)
+  ) %>%
+  mutate_at(vars(patient.age), funs(as.numeric)) %>%
+  arrange(referral.date) %>%
+  group_by(nhs.number) %>%
+  mutate(spell = sequence(n())) %>%
+  ungroup() 
+
+
+
+ # Geo dataset
+ 
+ ## Import UK postcodes table (open data)
+ table_postcodes <-
+   read_csv(
+   "~/Google Drive/Data Analysis/Bases de Datos/St. Cuthberts/Support Services/ukpostcodes.csv"
+   ) %>%
+   rename_all(funs(tolower(make.names(.)))) %>%
+   rename_all(funs(gsub("_", ".", .))) %>%
+   select(
+     postcode, 
+     latitude, 
+     longitude
+     )
+   
+ ## Join IPU, CS data with UK postcodes to get the longitud and latitude
+ table_CS_postcodes <-
+   dataset_referrals %>%
+   inner_join(table_postcodes, by = "postcode")
+   
+ 
+ # Include postcodes of donations and IPU/CS patients into main dataset
+ dataset_donations_postcode_ipu <- dataset_main_donations %>%
+   left_join(table_postcodes, by = c("donor.postcode" = "postcode")) %>%
+   full_join(table_CS_postcodes, by = c("donor.postcode" = "postcode")) %>%
+   select(
+     donor.no,
+     nhs.number,
+     donor.postcode,
+     latitude.x,
+     longitude.x,
+     latitude.y,
+     longitude.y
+   ) %>%
+   mutate_if(is.factor, funs(as.character)) %>%
+   replace_na(list(donor.no = "noMatch", nhs.number = "noMatch")) %>%
+   mutate(
+     owner.of.postcode = case_when(
+     donor.no == "no match" ~ "No Overlap",
+     nhs.number == "noMatch" ~ "No Overlap",
+     !nhs.number == "noMatch" ~ "Overlap"
+   ),
+   latitude = coalesce(latitude.x, latitude.y),
+   longitude = coalesce(longitude.x, longitude.y),
+   copy.long = longitude,
+   copy.lat = latitude
+   ) %>%
+   unite(long.lat, copy.long, copy.lat) %>%
+   distinct(long.lat, .keep_all = TRUE)  %>%
+   mutate_at(vars(owner.of.postcode), funs(as.factor)) %>%
+   select(
+     latitude,
+     longitude,
+     owner.of.postcode
+     )
+   
+ ## Remove table containing UK postcodes to free up space
+ remove(table_postcodes)
+  
+
+```
+
+
+
+
+
+Geospacial Data {data-width=700}
+====================
+
+### Data Merged
+
+```{r}
+
+## Select the colors of the dots according to JustDonor or DonorAndPacient
+pal <- colorFactor(palette = c('red', 'blue', 'green'),
+                   domain = dataset_donations_postcode_ipu$owner.of.postcode)
+
+
+## Geoplot using Leaflet
+leaflet(dataset_donations_postcode_ipu) %>%
+  addTiles() %>%
+  setView(-1.581517, 54.77952, zoom = 9) %>%
+  addCircles(
+    lng = dataset_donations_postcode_ipu$longitude,
+    lat = dataset_donations_postcode_ipu$latitude,
+    label = dataset_donations_postcode_ipu$owner.of.postcode,
+    color = ~ pal(owner.of.postcode)
+  )
+
+
+```
+
+

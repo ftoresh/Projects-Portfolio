@@ -1,0 +1,407 @@
+---
+title: "Clinical Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: flatly
+    orientation: columns
+    vertical_layout: fill
+runtime: shiny
+runApp: showcase
+---
+
+
+```{r global, include=FALSE}
+
+# Load libraries
+library(flexdashboard)
+library(tidyverse)
+library(readxl)
+library(ggthemes)
+library(plotly)
+library(rdrop2)
+library(readr)
+library(lubridate)
+
+# Load access key to Dropbox API
+drop_auth(rdstoken = "token batch.rds")
+
+
+########################  Import data ########################  
+
+# Import SystemOne/Excel dataset
+dataset_sysone_merged <-
+  drop_read_csv("st.cuthberts.data/sysone.excel/dataset_sysone_merged.csv") %>%
+  mutate_if(is.character, as.factor) %>%
+  mutate_at(vars(anonymous.patient.id), funs(as.character)) %>%
+  mutate_at(vars(anonymous.patient.id), funs(as.factor)) %>%
+  mutate_at(vars(date.of.contact), funs(ymd)) %>%
+  select(
+  anonymous.patient.id = anonymous.patient.id,
+  Phase.of.Illness = phase.of.illness,
+  patient.age,
+  Date.of.Contact = date.of.contact,
+  Spell = spell,
+  Index = index,
+  Score = values,
+  Measurement = measurement,
+  service.offered
+  ) 
+  
+```
+
+
+
+
+
+Patient's Dashboard
+====================
+
+Column {.sidebar data-width=300}
+-----------------------------------------------------------------------
+<br>
+```{r}
+
+## Hide error messages
+tags$style(
+  HTML(
+  type = "text/css",
+  ".shiny-output-error { visibility: hidden; }",
+  ".shiny-output-error:before { visibility: hidden; }"
+  )
+  )
+
+## Input NHS number of patient
+selectInput(inputId = "userid",
+          label = "Write the NHS Number of Patient",
+          choices = c("", levels(dataset_sysone_merged$anonymous.patient.id)),
+          selected = "",
+          multiple = FALSE)
+
+
+## Checkbox to select Measurement
+radioButtons(inputId = "measurementid",
+                      label = "Select the Measurement Tool to Display",
+                      choices =  levels(dataset_sysone_merged$Measurement))
+
+## Input Index
+selectInput(inputId = "indexid",
+                      label = "Select an Index",
+                      choices = NULL,
+                      multiple = FALSE)
+
+## Input Clinical Service
+selectInput(inputId = "serviceid3",
+          label = "Select the Clinical Service to Analyse",
+          choices = c("", levels(dataset_sysone_merged$service.offered)),
+          selected = "",
+          multiple = FALSE)
+
+## Boton to create plot
+actionButton(inputId = "actionid",
+             label = "Clic to Generate Graph")
+
+## Code for making the index input depend on the meassurement index
+observeEvent(input$measurementid, {
+   filtered <- dataset_sysone_merged %>%
+     filter(Measurement == input$measurementid) %>%
+              distinct(Index)
+
+   updateSelectInput(session, "indexid", choices = filtered)
+})
+
+## Create reactive dataset that will depend on patient, measurement and index
+reactiveOacc3<- reactive({
+  dataset_sysone_merged %>%
+    filter(
+      anonymous.patient.id == input$userid,
+      Measurement == input$measurementid,
+      Index == input$indexid,
+      service.offered == input$serviceid3
+      )
+      
+})
+
+
+# Create reactive dataset that will depend on patient and will just plot the AKPS
+reactiveOacc4<- reactive({
+  dataset_sysone_merged %>%
+    filter(
+      anonymous.patient.id == input$userid,
+      Measurement == "Australian Karnofsky Performance Status",
+      service.offered == input$serviceid3
+      )
+
+})
+
+
+```
+
+<style>
+body {
+text-align: left}
+</style>
+
+<br>
+
+The selector allows the user to specify a particular patient, an Outcome Meassure and the Index related to it.
+
+The first chart will show the selected Index and its linear tendency line, while the second graph will show the AKPS Score. The numbers following the line represent the spell's number, which when taking into account the time it indicates the lenght of each spell.
+
+By exploring different indexes it is possible to understand which ones increase or decrease at the moment the patient's disease evolves, as well as see trends and take actions for improvement.
+
+<br>
+
+
+Column {data-width=700 {.tabset}}
+-----------------------------------------------------------------------
+
+### Outcome Meassurement
+
+```{r}
+
+## Plot the meassurement chosen
+renderPlotly({
+  req(input$actionid)
+  ggplotly(isolate(reactiveOacc3()) %>%
+  ggplot(aes(Date.of.Contact, Score, label = Spell)) +
+  geom_raster(aes(fill = Phase.of.Illness), alpha = 0.4) +
+  scale_fill_manual(values = c("Is stable" = "green", 
+                               "Unstable status" = "yellow", 
+                               "Patient's condition deteriorating" = "orange",
+                               "Imminent expected death" = "red",
+                               "Patient died" = "grey")) +
+  geom_point(size = 3) +
+  geom_text(colour = "black", position = "jitter") +
+  geom_line(colour = "deepskyblue3", alpha = 0.4) +
+  geom_smooth(method = "lm", se = FALSE, colour = "deepskyblue3") +
+  scale_x_date(date_labels = "%b %Y") +
+  theme_economist_white() +
+  # scale_fill_economist() +
+  labs(x = "Date",
+       y = "Score",
+       colour = "Index",
+       fill = "Phase of Illness") +
+  theme(legend.position = "right", plot.title = element_text(size=20), plot.subtitle = element_text(size = 12), text = element_text(family = "Tahoma"), plot.background = element_rect(fill = "white"), plot.margin=unit(c(0,2.5,0,0),"cm"))
+  )
+})
+```
+
+
+### Australian Karnofsky Performance Status
+
+```{r}
+
+## Plot the AKPS
+renderPlotly({
+  req(input$actionid)
+  ggplotly(isolate(reactiveOacc4()) %>%
+  ggplot(aes(Date.of.Contact, Score, label = Spell)) +
+  geom_point(size = 3) +
+  geom_text(colour = "black", position = "jitter") +
+  geom_line(alpha = 0.4, colour = "darkorange1") +
+  geom_smooth(method = "lm", se = FALSE, colour = "darkorange1") +
+  scale_x_date(date_labels = "%b %Y") +
+  theme_economist_white() +
+  scale_fill_economist() +
+  labs(x = "Date",
+       y = "Score",
+       colour = "Index") +
+  theme(plot.title = element_text(size=20), plot.subtitle = element_text(size = 12), text = element_text(family = "Tahoma"), plot.background = element_rect(fill = "white"), plot.margin=unit(c(0,9,0,0),"cm")) 
+  )
+})
+
+```
+
+
+
+Patients by Index
+====================
+
+Column {.sidebar data-width=300}
+-----------------------------------------------------------------------
+<br>
+
+```{r}
+
+## Date input
+dateRangeInput(
+  inputId = "date2",
+  label = "Select dates",
+  start = "2015-01-01",
+  end = Sys.Date(),
+  min = "2015-01-01",
+  max = Sys.Date(),
+  startview = "year"
+  )
+  
+  
+## Checkbox
+radioButtons(inputId = "measurementid2",
+                      label = "Select the Measurement Tool to Display",
+                      choices =  levels(dataset_sysone_merged$Measurement)
+                   )
+
+## Input
+selectInput(inputId = "indexid2",
+                      label = "Select an Index",
+                      choices = NULL,
+                      multiple = FALSE)
+
+
+## Code for making the index input depend on the meassurement index
+observeEvent(input$measurementid2, {
+   filtered2 <- dataset_sysone_merged %>%
+     filter(Measurement == input$measurementid2) %>%
+              distinct(Index)
+
+   updateSelectInput(session, "indexid2", choices = filtered2)
+})
+
+
+## Index  value input
+numericInput(
+  inputId = "indexvalue21",
+  label = "Select a Range of Index Values",
+  min = 0,
+  max = 100,
+  value = 0,
+  step = 1
+  )
+  
+numericInput(
+  inputId = "indexvalue22",
+  label = "",
+  min = 0,
+  max = 100,
+  value = 20,
+  step = 1
+  )
+
+## Input Clinical Service
+selectInput(inputId = "serviceid2",
+          label = "Select the Clinical Service to Analyse",
+          choices = c("", levels(dataset_sysone_merged$service.offered)),
+          selected = "",
+          multiple = FALSE)
+
+## Boton to create plot
+actionButton(inputId = "actionid2",
+             label = "Clic to Generate Graph")
+
+
+## Make reactive dataset that will depend on the Score and date of contact and will feed the graph
+reactiveOacc <- reactive({
+  dataset_sysone_merged %>% 
+    filter(
+      Date.of.Contact >= input$date2[1] &
+      Date.of.Contact <= input$date2[2],
+      Measurement == input$measurementid2,
+      Index == input$indexid2,
+      service.offered == input$serviceid2
+      ) %>%
+mutate(day = strftime(.$Date.of.Contact, format = "%d")) %>%
+mutate(week = strftime(.$Date.of.Contact, format = "%V")) %>%
+mutate(month = strftime(.$Date.of.Contact, format = "%m")) %>%
+mutate(year = strftime(.$Date.of.Contact, format = "%Y")) %>%
+unite(WMY, week, month, year) %>%
+group_by(WMY, anonymous.patient.id) %>%
+mutate(mean.index.score = mean(Score, na.rm = TRUE)) %>%
+ungroup() %>%
+group_by(WMY) %>%
+distinct(anonymous.patient.id, .keep_all = TRUE) %>%
+mutate(number.of.patients = n()) %>%
+ungroup() %>%
+filter(
+  mean.index.score >= input$indexvalue21 & mean.index.score <= input$indexvalue22) %>%
+group_by(WMY) %>%
+mutate(Number.of.Patients = n(),
+       Percentage.of.Patients = round((Number.of.Patients / number.of.patients)*100),2) %>%
+ungroup() %>%
+distinct(WMY, .keep_all = TRUE)
+
+})
+
+
+```
+
+
+<style>
+body {
+text-align: left}
+</style>
+
+<br>
+
+**Individual Index Scores**
+
+This graph allows the user to select a particular Index and know the percentage of patients, among the total of patients, that had a particular range of values of the selected Index. The values showed are weekly.
+
+By exploring different ranges of Index Scores across dates it is possible to identify in which week there were more patients that had and over or underperformance in a particular aspect, as well as see recent trends to allocate the correct number of resorces according to it. 
+
+The **Patients Inside Selected Range** tab shows a table with the age and NHS number of patients that fall into the previous selected range. 
+
+<br>
+
+
+Column {.tabset}
+-----------------------------------------------------------------------
+
+### Patients by Index Graph
+
+```{r}
+
+## Make the plot that will show the AKPS values across time
+renderPlotly({
+  req(input$actionid2)
+  ggplotly(
+  reactiveOacc() %>%
+  ggplot(aes(Date.of.Contact, Percentage.of.Patients, label = Number.of.Patients)) +
+  geom_col(
+    fill = "deepskyblue3",
+    alpha = 0.7,
+    position = "dodge"
+  ) +
+  geom_smooth(
+    method = "loess",
+    se = FALSE,
+    colour = "grey40"
+  ) +
+  theme_economist_white() +
+  scale_fill_economist() +
+  labs(x = "Date", y = "Patients by Index Score (%)") +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(size = 20),
+    plot.subtitle = element_text(size = 12),
+    text = element_text(family = "Tahoma"),
+    plot.background = element_rect(fill = "white"),
+    plot.margin = unit(c(2, 2.5, 2, 2), "cm")
+  )
+  )
+})
+
+```
+
+
+### Patients Inside Selected Range
+
+```{r}
+
+DT::renderDataTable({
+    req(input$actionid2)
+  table <- (reactiveOacc() %>% 
+              distinct(anonymous.patient.id, .keep_all = TRUE) %>% 
+              select(
+            "NHS number"  = anonymous.patient.id,
+            "Patient Age"  =  patient.age
+              )
+  )
+
+
+DT::datatable(table, options = list(
+    scrollY = "500px", scrollX = TRUE, fillContainer = TRUE
+    ), rownames = FALSE) 
+
+  })
+
+```

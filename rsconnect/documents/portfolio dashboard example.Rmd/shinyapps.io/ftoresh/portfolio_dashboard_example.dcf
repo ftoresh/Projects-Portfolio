@@ -1,0 +1,12 @@
+name: portfolio_dashboard_example
+title: portfolio_dashboard_example
+username:
+account: ftoresh
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 986758
+bundleId: 2162063
+url: https://ftoresh.shinyapps.io/portfolio_dashboard_example/
+when: 1560882948.72058
+asMultiple: FALSE
+asStatic: FALSE
