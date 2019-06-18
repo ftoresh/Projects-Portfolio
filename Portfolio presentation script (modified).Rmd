@@ -33,6 +33,9 @@ library(parallel)
 library(readr)
 library(cluster)
 library(kableExtra)
+library(rdrop2)
+
+drop_auth(rdstoken = "token batch.rds")
 
 
 ### Revenue Management----
@@ -41,30 +44,32 @@ library(kableExtra)
 value_hotel<- "Cucuve"
 limite_occ<-  70
 
-### Main revenue dataset
-# 1) Import multiple files (Base)
+# ### Main revenue dataset
+# # 1) Import multiple files (Base)
+# 
+# ## Set working directory (Files before February 2018)
+# setwd("~/Google Drive/Data Analysis/Bases de Datos/Colibri/Data Hoteles")
+# 
+# ## Create a list from these files
+# list.filenames<-list.files(pattern=".xls$")
+# # list.filenames
+# 
+# ## Create an empty list that will serve as a container to receive the incoming files
+# list.data<-list()
+# 
+# ## Create a loop to read in your data
+# for (i in 1:length(list.filenames))
+# {
+#   list.data[[i]]<-read_excel(list.filenames[i], skip = 0)
+# }
+# 
+# ## Add the names of your data to the list
+# names(list.data)<-list.filenames
+# 
+# ## Join all the datasets of the list into one dataset
+# dataset<- bind_rows(list.data, .id = "Month")
 
-## Set working directory (Files before February 2018)
-setwd("~/Google Drive/Data Analysis/Bases de Datos/Colibri/Data Hoteles")
-
-## Create a list from these files
-list.filenames<-list.files(pattern=".xls$")
-# list.filenames
-
-## Create an empty list that will serve as a container to receive the incoming files
-list.data<-list()
-
-## Create a loop to read in your data
-for (i in 1:length(list.filenames))
-{
-  list.data[[i]]<-read_excel(list.filenames[i], skip = 0)
-}
-
-## Add the names of your data to the list
-names(list.data)<-list.filenames
-
-## Join all the datasets of the list into one dataset
-dataset<- bind_rows(list.data, .id = "Month")
+dataset <- drop_read_csv("portfolio/hotels.csv")
 
 # Pick the relevant information
 ## Delete empty columns 
@@ -75,7 +80,7 @@ dataset <- dataset[,colSums(is.na(dataset))<nrow(dataset)]
 dataset<- dataset %>% na.omit()
 
 ##Change names to dataset
-dataset<-  dataset %>% select(Month, Date, Available_Rooms = 'Available Rooms', Night_Sold = 'Night Sold', Complimentary, Occ = 'Occ%' ,ADR, Rev_Par = 'Rev Par', Pax, Room_charges = 'Room Charges')
+dataset<-  dataset %>% select(Month, Date, Available_Rooms = 'Available.Rooms', Night_Sold = 'Night.Sold', Complimentary, Occ = 'Occ.' ,ADR, Rev_Par = 'Rev.Par', Pax, Room_charges = 'Room.Charges')
 
 ## Remove unwanted "," from numbers
 dataset<- dataset %>% mutate_if(is.character, funs(gsub(",","",.)))
@@ -163,15 +168,20 @@ dataset$Hotel <- as.factor(dataset$Hotel)
 # 1) Import the data 
 ## Import National Index
 ## Import complete dataset of national indexes to make forecast 
-setwd("~/Google Drive/Data Analysis/Bases de Datos/Colibri/Data complementaria")
+# setwd("~/Google Drive/Data Analysis/Bases de Datos/Colibri/Data complementaria")
 # Be aware that there are empty spaces in the two next months of the dataset
-dataset_national_index_complete<- read_excel("~/Google Drive/Data Analysis/Bases de Datos/Colibri/Data complementaria/dataset_national_index_excel.xlsx", sheet = "Sheet 1", skip = 1)
+# dataset_national_index_complete<- read_excel("~/Google Drive/Data Analysis/Bases de Datos/Colibri/Data complementaria/dataset_national_index_excel.xlsx", sheet = "Sheet 1", skip = 1)
+
+dataset_national_index_complete <- drop_read_csv("portfolio/dataset_national_index_csv.csv")
 
 
 ### CRM----
 
 ### Import data
-dataset_donations <- read_csv("~/Google Drive/Data Analysis/Bases de Datos/St. Cuthberts/Support Services/Donorflex exports/dataset_main_donations_thesis.csv")
+# dataset_donations <- read_csv("~/Google Drive/Data Analysis/Bases de Datos/St. Cuthberts/Support Services/Donorflex exports/dataset_main_donations_thesis.csv")
+
+dataset_donations <- drop_read_csv("portfolio/dataset_main_donations_portf.csv")
+
 
 ####  Prepare the Data 
 
@@ -274,7 +284,7 @@ A classification model using the Random Forest algorithm was used. This is a nov
 
 * **Reporting**
 <br>
-Easy to read visualizations that help Revenue Managers make decisions about the pricing.
+Easy to read visualisations that help Revenue Managers make decisions about the pricing.
 
 <br>
 
@@ -680,7 +690,7 @@ fviz_cluster(ObjectKM,
 
 ```
 
-Five segments were identified, each with their own transactional patterns. A characterization was performed after further analysis of the clusters. 
+Five segments were identified, each with their own transactional patterns. A characterisation was performed after futher analysis of the clusters. 
 
 ---
 
@@ -715,7 +725,8 @@ Prototyping dashboards to get approval from stakeholders. Once approved, they ca
 
 ---
 
-## **Merge data from different sources to form a unique reality**
 
-Clic [here](https://www.youtube.com/watch?v=22a7iOIU6sw&feature=youtu.be) to see a real example of data gathered from two different sources, then joined to form a unique reality on a geospacial dashboard. 
+<iframe width="360" height="115" src="https://www.youtube.com/watch?v=22a7iOIU6sw&feature=youtu.be" frameborder="0" allowfullscreen></iframe>
 
+
+Real example of data gathered from two different sources, then joined to form a unique reality on a map. 
