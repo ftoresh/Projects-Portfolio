@@ -74,7 +74,7 @@ dataset <- dataset[,colSums(is.na(dataset))<nrow(dataset)]
 dataset<- dataset %>% na.omit()
 
 ##Change names to dataset
-dataset<-  dataset %>% select(Month, Date, Available_Rooms = 'Available Rooms', Night_Sold = 'Night Sold', Complimentary, Occ = 'Occ%' ,ADR, Rev_Par = 'Rev Par', Pax, Room_charges = 'Room Charges')
+dataset<-  dataset %>% select(Month, Date, Available_Rooms = 'Available Rooms', Night_Sold = 'Night Sold', Complimentary, Occ = 'Occ%' ,ADR, Rev_Par = 'Rev Par', Pax, Room_charges = 'Room Charges') 
 
 ## Remove unwanted "," from numbers
 dataset<- dataset %>% mutate_if(is.character, funs(gsub(",","",.)))
@@ -133,12 +133,14 @@ dataset<- dataset %>% mutate(Ciudad = case_when(Hotel %in% c("Cucuve",
 dataset_ADR_Galapagos<- filter(dataset, Ciudad == "Galapagos") %>%
   group_by(Ciudad, Complete_date) %>%
   summarise(ADR_Mercado = mean(ADR, na.rm = TRUE)) %>%
+  ungroup() %>% 
   gather(Ciudad_ADR, ADR_Mercado, -c(Ciudad, Complete_date)) %>%
   select(Ciudad, Complete_date, ADR_Mercado)
 
 dataset_ADR_PuertoLopez<- filter(dataset, Ciudad == "Puerto Lopez") %>%
   group_by(Ciudad, Complete_date) %>%
   summarise(ADR_Mercado = mean(ADR, na.rm = TRUE)) %>%
+  ungroup() %>% 
   gather(Ciudad_ADR, ADR_Mercado, -c(Ciudad, Complete_date)) %>%
   select(Ciudad, Complete_date, ADR_Mercado) 
 
@@ -631,11 +633,11 @@ In this example, on the date of analysis there is a `r round(mean(Prob.under),3)
 
 ### **The pipeline included two steps:**
 
-* **Segmentation of donors according to their Length, Recency, Frequency, Monetary, Periodicity of donations.**
+* **Segmentation of users according to their Length, Recency, Frequency, Monetary, Periodicity of transactions**
 <br>
 The original publication of this model can be found by entering [this link](https://www.emeraldinsight.com/doi/abs/10.1108/MIP-11-2016-0210).
 
-* **Fitting a model that predicts future donor engagement.**
+* **Fitting a model that predicts future user engagement.**
 <br>
 Fitting a model per cluster was found to improve the balance between Sensitivity and Specificity, as well as capture the variable importance among users with similar transactional patterns. This framework was used as a prescriptive analysis to inform the strategic goals of a non-profit organisation. 
 
@@ -685,16 +687,15 @@ Five segments were identified, each with their own transactional patterns. A cha
 
 ```{r ML model stats, fig.align="center", echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
 
-ObjectTableML <- read_csv("~/Google Drive/Thesis/Images/Table2 (csv).csv")
+ObjectTableML <- read_csv("~/Google Drive/Portfolio/Table2 (csv).csv")
 
 kable(ObjectTableML) %>% kable_styling(bootstrap_options = "condensed", position = "center")
 
 ```
 
 
-A classification model was performed, gathering concepts from Churn Prediction and Lifetime Value models, adapting them to a charity context as well as the problem to solve. 
+A classification model was performed, gathering concepts from Churn Prediction and Lifetime Value models, adapting them to the problem to solve. 
 
-* *The research document describing the framework is expected to be published*
 
 <br>
 
@@ -702,11 +703,8 @@ A classification model was performed, gathering concepts from Churn Prediction a
 
 * **Operational Dashboards.**
 <br>
-As operational tools or managerial information systems, dashboards can inform the business about KPI's performance. To see an example access [this link](https://ftoresh.shinyapps.io/portfolio_dashboard_example/)
+As operational tools or managerial information systems, dashboards can inform the business about KPI's performance. To see an example access [this link](https://ftoresh.shinyapps.io/portfolio_dash/)
 
-* **What-if-analysis.**
-<br>
-Machine Learning models can run behind the dashboards, giving stakeholders the ability to interact with the model by seeing predictions according to selected variables. 
 
 * **Rapid prototyping.**
 <br>
