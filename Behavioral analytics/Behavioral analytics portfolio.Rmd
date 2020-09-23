@@ -25,7 +25,7 @@ library(caret)
 # library(ggthemes)
 # library(gridExtra)
 # library(scales)
-library(fpc)
+# library(fpc)
 library(factoextra)
 library(plotly)
 # library(parallel)
@@ -117,8 +117,8 @@ dataset_clustering <- dataset_pre_clustering %>%
          frequency,
          monetary,
          peridiocity) %>%
-  mutate_at(vars(length,
-                 recency), funs(as.numeric))
+  mutate(across(c(length,
+                 recency), ~ as.numeric(.)))
 
 
 # Behavioural cohorts----
@@ -201,7 +201,7 @@ Fitting a model per cluster was found to improve the balance between Sensitivity
 # Scale the data if necessary (by preProcess = )
 ## Create an object with the pre processing parameters
 ObjectPreprocessParams <-
-  preProcess(dataset_clustering, method = c("scale"))
+  caret::preProcess(dataset_clustering, method = c("scale"))
 
 ## Transform the dataset using the parameters
 dataset_clustering <-
@@ -223,13 +223,15 @@ VectorClusters <- ObjectKM$cluster
 dataset_clustered_km <-
   mutate(dataset_pre_clustering, cluster.assigned = VectorClusters)
 
-fviz_cluster(
+factoextra::fviz_cluster(
   ObjectKM,
   dataset_clustering,
-  palette = c("#da6366", "#0099CC", "#99E6FF", "#6cc473", "#6e6e9e"),
-  alpha = 0.5,
+  palette = c("#6A453B", "#CEAA7A", "#E9E2CE", "#7399BD", "#1C477F"),
+  # palette = c("#da6366", "#0099CC", "#99E6FF", "#6cc473", "#6e6e9e"),
+  alpha = 0.7,
   ggtheme = theme_minimal(),
-  main = "Partitioning Clustering Plot"
+  main = "Partitioning Clustering Plot",
+  labelsize = 0
 ) +
   labs(title = "Clusters of LRFMP Variables in a Two-Dimensional Space",
        subtitle = "Principal Components were used to reduce dimensions")
@@ -253,14 +255,12 @@ kable(ObjectTableML) %>%
 
 A classification model was performed, gathering concepts from Churn Prediction and Lifetime Value models, adapting them to the problem to solve. 
 
-----
 
 
 ## **Cohort analysis**
 
-<br>
 
-Be able to directly see which behaviour drove better or worse retention is key to define critical events, activation points or flaws in the product.
+Be able to directly see which behaviour drove to better or worse retention is key in building features that improve Lifetime Value.
 
 
 -----
@@ -275,10 +275,10 @@ classifier_survival_playlists_created <-
 
 
 PlotSurvivalCI(classifier_survival_playlists_created,
-             "More than 3",
+             "More than 3 times",
              "1-3",
              "0",
-             legendtitle = "Times event\n performed by users") +
+             legendtitle = "Event\n performed") +
   geom_hline(
     yintercept = 0.44,
     lty = "longdash",
@@ -296,27 +296,16 @@ PlotSurvivalCI(classifier_survival_playlists_created,
   coord_cartesian(ylim = c(0.3, 1)) +
   coord_cartesian(xlim = c(0, 91)) +
   labs(title = "90 days retention by Behavioural Cohort",
-       subtitle = glue::glue("In this scenario, users should be induced (by UI, reward system, etc.) to perform the activity 
-                             as many times as possible to increase retention."),
        x = "Days since subscription")
 
 ```
 
------
 
-## **Cohort analysis**
-
-<br>
-Be able to directly see which behaviour drove better retention is key to define critical events, activation points or flaws in the product.
-
-The use of Survival Analysis for churn outperforms standard methods, as it can draw more specific retention paths as well as being able to show confidence intervals, which add rigour to the analysis.
-
------
 
 ## **Understand Machine Learning predictions**
 
 <br>
-By predicting a particular behaviour, such as churning or any other user interaction, the model will decode from vast amounts of data what drove users to perform that activity. However, Machine Learning models are black-boxes, so predicting is useless if there is no clear understanding of the models' learnings.
+By predicting a particular behaviour, such as churning or any other user interaction, the model will decode ,from vast amounts of data, what drove users to perform that activity. However, Machine Learning models are black-boxes, so predicting is useless if there is no clear understanding of the models' learnings.
 
 Explainable Machine Learning techniques are used to make models become human readable. Performing this analysis can save hours of data exploration, as the model is able to get the patterns more efficiently. 
 
@@ -374,11 +363,9 @@ parallel::stopCluster(cl)
 ```
 
 
-```{r Explainable ML (explanation), fig.align="center", include = FALSE, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
+```{r Explainable ML (explanation), fig.align="center", echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
 
-# Make Object predictor
-
-## Make dataset without dependent variable
+## Make Object predictor
 dataset_explainable_ml <- training_set[which(names(training_set) != "binari.engaged")] 
   
 ## Create a predictor object with training data with and without dependent variable
@@ -399,23 +386,59 @@ ObjectFE <-
   ) 
 
 
-ObjectFE$results %>% 
-  filter(.class == "Yes") %>% 
-  mutate(online.playlist.perc.listened.mod = online.playlist.perc.listened / 100) %>% 
+ObjectFE$results %>%
+  filter(.class == "Yes") %>%
+  mutate(online.playlist.perc.listened.mod = online.playlist.perc.listened / 100) %>%
   ggplot(aes(online.playlist.perc.listened.mod, .value)) +
-  geom_line() +
+  geom_line(color = "#CEAA7A",
+            size = 1,
+            alpha = 0.8) +
+  geom_line(color = "#CEAA7A",
+            size = 3,
+            alpha = 0.2) +
   my_minimal_theme +
-  geom_vline(xintercept = 0.9, colour = "deepskyblue3", alpha = 0.3) + 
-  geom_vline(xintercept = 1, colour = "deepskyblue3", alpha = 0.3) +
-  annotate("rect", xmin = 0.9, xmax = 1, ymin = -Inf, ymax = Inf, fill = "deepskyblue3", alpha = .2, color = NA) + 
-  annotate("text", x = 0.7, y = 0.05, label = "Disengagement\n area", size = 4, alpha = 0.7) +
-  geom_segment(aes(x = 0.82, y = 0.05, xend = 0.95, yend = 0.05),
-               arrow = arrow(length = unit(0.2, "cm"))) +
-  labs(title = "How does usage of a feature affect engagement?",
+  geom_vline(xintercept = 0.9,
+             colour = "deepskyblue3",
+             alpha = 0.3) +
+  geom_vline(xintercept = 1,
+             colour = "deepskyblue3",
+             alpha = 0.3) +
+  annotate(
+    "rect",
+    xmin = 0.9,
+    xmax = 1,
+    ymin = -Inf,
+    ymax = Inf,
+    fill = "deepskyblue3",
+    alpha = .2,
+    color = NA
+  ) +
+  annotate(
+    "text",
+    x = 0.7,
+    y = 0.05,
+    label = "Disengagement\n area",
+    size = 4,
+    alpha = 0.7
+  ) +
+  geom_segment(
+    aes(
+      x = 0.82,
+      y = 0.05,
+      xend = 0.95,
+      yend = 0.05
+    ),
+    color = "#CEAA7A",
+    arrow = arrow(length = unit(0.2, "cm"))
+  ) +
+  labs(title = "How does the usage of a feature affect engagement?",
        x = "Usage of a feature",
        y = "Change in Engagement") +
-  scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, by = 0.10), labels = scales::percent_format(accuracy = 5L)) 
-
+  scale_x_continuous(
+    limits = c(0, 1),
+    breaks = seq(0, 1, by = 0.10),
+    labels = scales::percent_format(accuracy = 5L)
+  ) 
 
 
 ```
@@ -423,9 +446,9 @@ ObjectFE$results %>%
 
 ## **Interactive Web-Dashboards using reactive programming**
 
-* **Critical events dashboards.**
+* **User behaviour tracker.**
 <br>
-Critical events or activation points need monitoring. Being able to constantly see the changes in user behaviour and determine if goals are met can be game changer. To see an example access [this link](https://ftoresh.shinyapps.io/portfolio_dash/)
+User activity, critical events or activation points need monitoring. Being able to constantly see the changes in user behaviour and determine if goals are met can be game changer. To see an example access [this link](https://ftoresh.shinyapps.io/portfolio_dash/)
 
 
 * **Rapid prototyping.**
