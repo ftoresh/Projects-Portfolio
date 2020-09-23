@@ -10,7 +10,7 @@ output:
 
 ```{r setup, include=FALSE}
 
-knitr::opts_chunk$set(echo = FALSE, fig.align="center", out.width = "650px")
+knitr::opts_chunk$set(echo = FALSE, fig.align="center", out.width = "750px")
 
 ```
 
@@ -20,18 +20,6 @@ knitr::opts_chunk$set(echo = FALSE, fig.align="center", out.width = "650px")
 # Load initial script
 source("/Users/ftoresh/Google Drive/Data Analysis/Script Formulas/Initiate.R")
 
-library(caTools)
-library(caret)
-# library(ggthemes)
-# library(gridExtra)
-# library(scales)
-# library(fpc)
-library(factoextra)
-library(plotly)
-# library(parallel)
-# library(readr)
-library(cluster)
-library(kableExtra)
 library(iml)
 
 
@@ -247,8 +235,8 @@ Five segments were identified, each with their own transactional patterns. A cha
 ObjectTableML <- 
   read_csv("~/Google Drive/Portfolio/Table2 (csv).csv")
 
-kable(ObjectTableML) %>% 
-  kable_styling(bootstrap_options = "condensed", position = "center")
+kableExtra::kable(ObjectTableML) %>% 
+  kableExtra::kable_styling(bootstrap_options = "condensed", position = "center")
 
 ```
 
@@ -300,6 +288,7 @@ PlotSurvivalCI(classifier_survival_playlists_created,
 
 ```
 
+The usage of Survival Analysis to measure churn outperforms standard methods, as it can draw confidence intervals, adding rigour to the analysis. 
 
 
 ## **Understand Machine Learning predictions**
@@ -327,12 +316,12 @@ training_set <- subset(dataset_survived_ml, split == TRUE)
 test_set <- subset(dataset_survived_ml, split == FALSE)
 
 # Create custom indices: myFolds
-myFolds <- createFolds(training_set$binari.engaged, k = 5)
+myFolds <- caret::createFolds(training_set$binari.engaged, k = 5)
 
-my_control <- trainControl(
+my_control <- caret::trainControl(
   method = "cv",
   number = 10,
-  summaryFunction = twoClassSummary,
+  summaryFunction = caret::twoClassSummary,
   classProbs = TRUE,
   verboseIter = TRUE,
   savePredictions = FALSE,
@@ -348,7 +337,7 @@ cl <- parallel::makeCluster(no_cores, type = "FORK")
 
 # Binary Output
 classifier <-
-  train(
+  caret::train(
     binari.engaged ~ .,
     data = training_set,
     trControl = my_control,
@@ -381,7 +370,6 @@ ObjectFE <-
     feature = "online.playlist.perc.listened",
     # Method to use
     method = "ale",
-    # X axis
     grid.size = 30
   ) 
 
@@ -390,18 +378,19 @@ ObjectFE$results %>%
   filter(.class == "Yes") %>%
   mutate(online.playlist.perc.listened.mod = online.playlist.perc.listened / 100) %>%
   ggplot(aes(online.playlist.perc.listened.mod, .value)) +
-  geom_line(color = "#CEAA7A",
+  geom_line(color = "#6A453B",
             size = 1,
-            alpha = 0.8) +
-  geom_line(color = "#CEAA7A",
+            alpha = 0.7,
+            linetype = "longdash") +
+  geom_line(color = "#6A453B",
             size = 3,
             alpha = 0.2) +
   my_minimal_theme +
   geom_vline(xintercept = 0.9,
-             colour = "deepskyblue3",
+             colour = "#1C477F",
              alpha = 0.3) +
   geom_vline(xintercept = 1,
-             colour = "deepskyblue3",
+             colour = "#1C477F",
              alpha = 0.3) +
   annotate(
     "rect",
@@ -409,7 +398,7 @@ ObjectFE$results %>%
     xmax = 1,
     ymin = -Inf,
     ymax = Inf,
-    fill = "deepskyblue3",
+    fill = "#1C477F",
     alpha = .2,
     color = NA
   ) +
@@ -463,4 +452,4 @@ Click [here](https://www.youtube.com/watch?v=22a7iOIU6sw&feature=youtu.be) to se
 
 ---
 
-The code of this portfolio can be seen on my Github account following [this repository](https://github.com/ftoresh/Projects-Portfolio/blob/master/Portfolio%20presentation%20script.Rmd). 
+The code of this portfolio can be seen on my Github account following [this repository](https://github.com/ftoresh/Projects-Portfolio/blob/master/Behavioral%20analytics/Behavioral%20analytics%20portfolio.Rmd). 
