@@ -294,7 +294,7 @@ The usage of Survival Analysis to measure churn outperforms standard methods, as
 ## **Understand Machine Learning predictions**
 
 <br>
-By predicting a particular behaviour, such as churning or any other user interaction, the model will decode ,from vast amounts of data, what drove users to perform that activity. However, Machine Learning models are black-boxes, so predicting is useless if there is no clear understanding of the models' learnings.
+By predicting a particular behaviour, such as churning or any other user interaction, the model will decode, from vast amounts of data, what drove users to perform that activity. However, Machine Learning models are black-boxes, so predicting is useless if there is no clear understanding of the model's learnings.
 
 Explainable Machine Learning techniques are used to make models become human readable. Performing this analysis can save hours of data exploration, as the model is able to get the patterns more efficiently. 
 
